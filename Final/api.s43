@@ -1,0 +1,68 @@
+#include  "bsp.h"
+
+
+          MODULE  API
+          PUBLIC  IncLED, PushLED, createPWM, PrintStr
+          EXTERN  state, PWM, state0, delay, PrintLEDs
+          
+          RSEG    CODE
+          
+
+IncLED    mov     #20, R12
+          mov.b   R9, LEDsArrPort                    
+subLoop   inc.b   LEDsArrPort
+          call    #delayHalf
+          dec     R12
+          JNZ     subLoop
+          mov.b   LEDsArrPort, R9
+          mov.b   #0, state     
+          jmp     state0
+          
+PushLED   mov     #14, R12          
+          clr.b   LEDsArrPort
+          mov.b   R10, LEDsArrPort          
+subloop2  cmp.b   #0, LEDsArrPort
+          JNZ     retForNow
+          inc.b   LEDsArrPort          
+          call    #delayHalf         
+retForNow rla.b   LEDsArrPort 
+          mov.b   LEDsArrPort,R10
+          call    #delayHalf
+          dec     R12
+          JNZ     subloop2
+          mov.b   #0, state
+          jmp     state0
+          
+createPWM
+          bic.b   #0x80, PWMStatus
+          call    #PWM
+          ret
+          
+PrintStr  pop     R12
+          mov     #9, R12
+          pop     R13 ; השהיות
+          pop     R14 ; מצביע
+subLoopP  push    @R14+
+          CALL    #PrintLEDs
+          call    #delayHalf
+          dec     R12
+          jnz     subLoopP
+          mov.b   #0, state
+          jmp     state0
+
+delayHalf mov     #debounceVal, R6
+subLoopD  push    #delayTime
+          call    #delay
+          dec     R6
+          JNZ     subLoopD
+          ret
+          
+delayQuat mov     #debounceVal, R6
+subLoopD2 push    #delayTime2
+          call    #delay
+          dec     R6
+          JNZ     subLoopD2
+          ret          
+          
+          ENDMOD
+          END

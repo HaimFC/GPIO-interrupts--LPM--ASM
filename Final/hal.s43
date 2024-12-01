@@ -1,0 +1,97 @@
+#include    "bsp.h"
+
+
+            MODULE  HAL
+            PUBLIC  SysConfig, PrintLEDs, ClrLEDs, ReadSWs, delay, PORT2_ISR
+            PUBLIC  PWM
+            EXTERN  GPIOconfig, TIMERconfig, ADCconfig
+            EXTERN  state, state0
+            RSEG    CODE
+;---------------------------------------------------------------------------
+;           System Configuration
+;---------------------------------------------------------------------------
+SysConfig   call  #GPIOconfig
+            call  #TIMERconfig
+            call  #ADCconfig
+            ret
+;---------------------------------------------------------------------------
+;Print LEDs
+;---------------------------------------------------------------------------
+PrintLEDs   pop   R4
+            pop   R5
+            
+            mov.b R5,LEDsArrPort
+            
+            push  R4
+            ret
+;---------------------------------------------------------------------------
+;Clear LEDs
+;---------------------------------------------------------------------------
+ClrLEDs     clr.b LEDsArrPort
+            ret
+;---------------------------------------------------------------------------
+;Read SWs
+;---------------------------------------------------------------------------
+ReadSWs     pop   R4
+            
+            mov.b PBsArrPort,R5
+            and.b #0xF0,R5
+            
+            push  R5
+            push  R4
+            ret
+;---------------------------------------------------------------------------
+;           PORT2 Interrupt Service Routine
+;---------------------------------------------------------------------------
+PORT2_ISR   ;push  #debounceVal
+           ; call  #delay
+            bit.b #0x01,PBsArrIntPend
+            jnz   P2_0
+            bit.b #0x02,PBsArrIntPend
+            jnz   P2_1
+            bit.b #0x04,PBsArrIntPend
+            jnz   P2_2
+            bit.b #0x08,PBsArrIntPend
+            jnz   P2_3
+            reti
+            
+P2_0        mov   #1,state
+            jmp   exitLPM0
+P2_1        mov   #2,state
+            jmp   exitLPM0
+P2_2        mov   #3,state
+            jmp   exitLPM0
+P2_3        mov   #4,state
+            jmp   exitLPM0
+            
+exitLPM0    bic   #CPUOFF,0(SP)
+            bic.b #0x0f,PBsArrIntPend
+            jmp   state0   
+;---------------------------------------------------------------------------
+;           Create Pulse
+;---------------------------------------------------------------------------
+PWM                       
+inf       xor.b   #0x80,PWMStatus
+          mov.w   #65,R5            
+down      dec.w   R5                     
+          jnz     down
+          
+          xor.b   #0x80,PWMStatus
+          mov.w   #20,R5
+up        dec.w   R5                     
+          jnz     up
+          jz      inf       
+;---------------------------------------------------------------------------
+;           Poolling based Delay function   
+;---------------------------------------------------------------------------
+delay       pop   R4
+            pop   R5
+            
+L           dec.w R5
+            jnz   L
+            
+            push  R4
+            ret
+;---------------------------------------------------------------------------
+            ENDMOD
+            END

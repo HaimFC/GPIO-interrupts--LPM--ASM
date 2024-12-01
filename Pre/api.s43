@@ -1,0 +1,47 @@
+#include  "bsp.h"
+
+
+          MODULE  API
+          PUBLIC  IncLED, PushLED, createPWM
+          EXTERN  state, PWM, state0, delay
+          
+          RSEG    CODE
+          
+
+IncLED    mov     #20, R12
+          mov.b   R9, LEDsArrPort                    
+subLoop   inc.b   LEDsArrPort
+          push    #debounceVal
+          push    #delayTime ;#
+          call    #delay
+          dec     R12
+          JNZ     subLoop
+          mov.b   LEDsArrPort, R9
+          mov.b   #0, state     
+          jmp     state0
+          
+PushLED   mov     #14, R12          
+          clr.b   LEDsArrPort
+          mov.b   R10, LEDsArrPort          
+subloop2  cmp.b   #0, LEDsArrPort
+          JNZ     retForNow
+          inc.b   LEDsArrPort
+          push    #debounceVal
+          push    #delayTime 
+          call    #delay
+retForNow rla.b   LEDsArrPort 
+          mov.b   LEDsArrPort,R10
+          push    #debounceVal
+          push    #delayTime 
+          call    #delay
+          dec     R12
+          JNZ     subloop2
+          mov.b   #0, state
+          jmp     state0
+createPWM
+          bic.b    #0x80, PWMStatus
+          call     #PWM
+          ret
+          
+          ENDMOD
+          END
